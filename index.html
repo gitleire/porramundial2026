@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Clasificación</title>
+
+<style>
+body {
+  font-family: Arial, sans-serif;
+  margin: 0;
+  background: #0f172a;
+  color: white;
+}
+
+header {
+  padding: 16px;
+  text-align: center;
+  background: #111827;
+  position: sticky;
+  top: 0;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  padding: 12px;
+  text-align: left;
+}
+
+tr {
+  border-bottom: 1px solid #1f2937;
+}
+
+.top1 { background: #1e3a8a; }
+.top2 { background: #1e293b; }
+.top3 { background: #172554; }
+
+.up { color: #22c55e; font-weight: bold; }
+.down { color: #ef4444; font-weight: bold; }
+.same { color: #9ca3af; }
+
+.badge {
+  font-size: 12px;
+}
+</style>
+</head>
+
+<body>
+
+<header>
+  <h2>🏆 Clasificación General</h2>
+  <div id="lastUpdate">Actualizando...</div>
+</header>
+
+<table>
+  <thead>
+    <tr>
+      <th>#</th>
+      <th>Nombre</th>
+      <th>Puntos</th>
+      <th>Δ</th>
+    </tr>
+  </thead>
+  <tbody id="tabla"></tbody>
+</table>
+
+<script>
+
+const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgkgWNZqMLZpWk2y186_STVeQdTT2-5Aa3PUZWVCIWsA2a_IbTa2lULc71vWTTZA/pub?gid=1425177648&single=true&output=csv";
+
+let previousData = JSON.parse(localStorage.getItem("clasificacion") || "[]");
+
+function parseCSV(text) {
+  const rows = text.trim().split("\n").slice(1);
+  return rows.map(r => {
+    const cols = r.split(",");
+    return {
+      puesto: parseInt(cols[0]),
+      nombre: cols[1],
+      puntos: parseInt(cols[2])
+    };
+  });
+}
+
+function getChange(prev, current) {
+  const mapPrev = {};
+  prev.forEach(p => mapPrev[p.nombre] = p.puesto);
+
+  return current.map(p => {
+    let change = "same";
+
+    if (mapPrev[p.nombre] !== undefined) {
+      const diff = mapPrev[p.nombre] - p.puesto;
+
+      if (diff > 0) change = "up";
+      else if (diff < 0) change = "down";
+    }
+
+    return { ...p, change };
+  });
+}
+
+function render(data) {
+  const tbody = document.getElementById("tabla");
+  tbody.innerHTML = "";
+
+  data.forEach((p, i) => {
+    let cls = "";
+    if (i === 0) cls = "top1";
+    if (i === 1) cls = "top2";
+    if (i === 2) cls = "top3";
+
+    let icon = "—";
+    if (p.change === "up") icon = "🟢 ▲";
+    if (p.change === "down") icon = "🔴 ▼";
+
+    tbody.innerHTML += `
+      <tr class="${cls}">
+        <td>${p.puesto}</td>
+        <td>${p.nombre}</td>
+        <td>${p.puntos}</td>
+        <td class="${p.change}">${icon}</td>
+      </tr>
+    `;
+  });
+}
+
+async function loadData() {
+  try {
+    const res = await fetch(SHEET_URL);
+    const text = await res.text();
+
+    const current = parseCSV(text);
+    const merged = getChange(previousData, current);
+
+    render(merged);
+
+    localStorage.setItem("clasificacion", JSON.stringify(current));
+    previousData = current;
+
+    document.getElementById("lastUpdate").innerText =
+      "Última actualización: " + new Date().toLocaleTimeString();
+
+  } catch (e) {
+    console.error(e);
+  }
+}
+
+loadData();
+setInterval(loadData, 60000);
+
+</script>
+
+</body>
+</html>
