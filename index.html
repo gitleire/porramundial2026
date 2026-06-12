@@ -75,15 +75,17 @@ const SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vQgkgWNZqMLZp
 let previousData = JSON.parse(localStorage.getItem("clasificacion") || "[]");
 
 function parseCSV(text) {
-  const rows = text.trim().split("\n").slice(1);
-  return rows.map(r => {
-    const cols = r.split(",");
+  const lines = text.trim().split("\n");
+
+  return lines.map((line, index) => {
+    const cols = line.split(",").map(c => c.replace(/"/g, "").trim());
+
     return {
-      puesto: parseInt(cols[0]),
+      puesto: cols[0],
       nombre: cols[1],
-      puntos: parseInt(cols[2])
+      puntos: cols[2]
     };
-  });
+  }).filter(r => r.puesto && r.nombre && r.puntos);
 }
 
 function getChange(prev, current) {
