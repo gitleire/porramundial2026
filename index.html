@@ -77,22 +77,24 @@ let previousData = JSON.parse(localStorage.getItem("clasificacion") || "[]");
 function parseCSV(text) {
   const lines = text.trim().split("\n");
 
-  return lines
-    .map(line => {
-      const cols = line.split(",").map(c => c.trim().replace(/"/g, ""));
+  const dataLines = lines.filter(l =>
+    l.includes(",") && !l.toLowerCase().includes("puesto,nombre,puntos")
+  );
 
-      // buscamos los datos reales dentro de la fila
-      const puesto = cols.find(v => /^\d+$/.test(v));
-      const nombre = cols.find((v, i) => cols[i + 1] && isNaN(cols[i + 1]));
-      const puntos = cols.find(v => /^\d+$/.test(v) && v !== puesto);
+  return dataLines.map(line => {
+    const cols = line.split(",").map(c => c.trim().replace(/"/g, ""));
 
-      return {
-        puesto,
-        nombre,
-        puntos
-      };
-    })
-    .filter(r => r.puesto && r.nombre && r.puntos);
+    // BUSCAMOS LOS VALORES REALES (saltando columnas vacías)
+    const values = cols.filter(v => v !== "");
+
+    return {
+      puesto: parseInt(values[0]),
+      nombre: values[1],
+      puntos: parseInt(values[2])
+    };
+  }).filter(r =>
+    !isNaN(r.puesto) && r.nombre && !isNaN(r.puntos)
+  );
 }
 
 function getChange(prev, current) {
