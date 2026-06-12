@@ -77,15 +77,22 @@ let previousData = JSON.parse(localStorage.getItem("clasificacion") || "[]");
 function parseCSV(text) {
   const lines = text.trim().split("\n");
 
-  return lines.map((line, index) => {
-    const cols = line.split(",").map(c => c.replace(/"/g, "").trim());
+  return lines
+    .map(line => {
+      const cols = line.split(",").map(c => c.trim().replace(/"/g, ""));
 
-    return {
-      puesto: cols[0],
-      nombre: cols[1],
-      puntos: cols[2]
-    };
-  }).filter(r => r.puesto && r.nombre && r.puntos);
+      // buscamos los datos reales dentro de la fila
+      const puesto = cols.find(v => /^\d+$/.test(v));
+      const nombre = cols.find((v, i) => cols[i + 1] && isNaN(cols[i + 1]));
+      const puntos = cols.find(v => /^\d+$/.test(v) && v !== puesto);
+
+      return {
+        puesto,
+        nombre,
+        puntos
+      };
+    })
+    .filter(r => r.puesto && r.nombre && r.puntos);
 }
 
 function getChange(prev, current) {
